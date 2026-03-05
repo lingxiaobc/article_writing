@@ -1,0 +1,12 @@
+# 私人日记
+日记.md
+
+# 本地敏感配置（含 API Key）
+.claude/settings.local.json
+.claude/settings.local.json.bak
+
+# Obsidian 配置
+.obsidian/
+
+# 草稿目录
+draft/
