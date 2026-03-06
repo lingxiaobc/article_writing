@@ -61,6 +61,12 @@
 ```
 article_writing/
 ├── CLAUDE.md
+├── draft/                        ← 文章草稿存储目录
+│   └── [项目名称]/
+│       ├── article.md           ← 原始文章
+│       ├── article-optimized.md ← 优化后文章
+│       └── image/               ← 文章信息图输出目录
+├── generated_images/             ← 图片生成默认输出目录
 └── .claude/
     ├── settings.json
     ├── settings.local.json          ← 存放 GEMINI_API_KEY（私有，勿提交）
@@ -93,3 +99,36 @@ article_writing/
     └── agents/
         └── article-critic.md        ← 文章评审子智能体
 ```
+
+---
+
+## 目录用途说明
+
+| 目录 | 说明 |
+|------|------|
+| `draft/` | 文章草稿存储目录，每个项目一个子文件夹，包含原始文章、优化后文章及配套图片 |
+| `generated_images/` | 图片生成默认输出目录（当未指定输出目录时使用） |
+| `.obsidian/` | Obsidian 笔记软件配置，用于 Markdown 编辑与预览 |
+
+---
+
+## 依赖环境
+
+图片生成脚本需要以下 Python 依赖：
+
+```bash
+pip install google-genai pillow
+```
+
+脚本会自动从环境变量读取 `GEMINI_API_KEY`（配置在 `.claude/settings.local.json`）。
+
+---
+
+## 常用脚本命令
+
+| 功能 | 命令 |
+|------|------|
+| 生成文章封面 | `python .claude/skills/cover-generator/scripts/cover_generator.py "标题" "IP行为描述" [输出目录]` |
+| 生成信息图 | `python .claude/skills/optimize-article/scripts/infographic_generator.py "提示词" [输出目录]` |
+| 统计文章字数 | `python .claude/skills/optimize-article/scripts/word_count.py <文件路径>` |
+| 提取文章大纲 | `python .claude/skills/optimize-article/scripts/extract_outline.py <文件路径>` |
