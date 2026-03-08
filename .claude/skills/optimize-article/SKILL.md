@@ -65,6 +65,7 @@ allowed-tools: Read, WebFetch, Write, Edit, Grep, Bash
 > 5. 融入日记风格的语言特征（语气、表达方式）
 > 6. 输出诊断评分表、改动说明及完整优化版文章（每个大板块后附手绘信息图）
 > 7. 询问是否保存文件
+> 8. 用户确认最终标题后，自动将文件名更改为该标题
 >
 > **目标：** 先对文章观点进行客观分析与诊断，待你确认优化方向后，再进行全文优化。确保最终文章质量（严谨、逻辑合理、语义通顺），同时融入日记风格的语言特征，提升可读性、传播力与视觉层次。
 >
@@ -204,14 +205,23 @@ python .claude/skills/optimize-article/scripts/extract_outline.py <文件路径>
 
    根据文章来源确定 `IMAGE_DIR`：
 
-   - **本地文件**：取文件所在目录，在其下创建 `image/` 子目录
+   - **本地文件**：在 `draft/` 目录下创建以文章标题命名的文件夹，在其下创建 `image/` 子目录
      ```
-     IMAGE_DIR = <文章文件所在目录>/image
+     ARTICLE_DIR = D:\BaiduSyncdisk\claude_code\article_writing\draft\<规范化的文章标题>
+     IMAGE_DIR = <ARTICLE_DIR>/image
      ```
-     例如文章路径为 `P:\claude_code\article_writing\draft\我用扣子搭建了一个信息图生成网页\xxx.md`，
-     则 `IMAGE_DIR = P:\claude_code\article_writing\draft\我用扣子搭建了一个信息图生成网页\image`
+     例如文章标题为 "Claude Code 使用心得"，则：
+     ```
+     ARTICLE_DIR = D:\BaiduSyncdisk\claude_code\article_writing\draft\Claude Code 使用心得
+     IMAGE_DIR = D:\BaiduSyncdisk\claude_code\article_writing\draft\Claude Code 使用心得\image
+     ```
 
-   - **网页链接 / 直接粘贴**：使用默认目录，脚本自动处理，调用时不传第二个参数
+     **目录名规范化规则：**
+     - 去除 Windows 不允许的字符：`\ / : * ? " < > |`
+     - 保留空格、中文、英文、数字、下划线、连字符
+     - 长度不超过 50 个字符（超出部分截断）
+
+   - **网页链接 / 直接粘贴**：同样在 `draft/` 目录下创建以文章标题命名的文件夹及 `image/` 子目录
 
 2. **识别大板块边界**
    文章中以 `##` 或明显段落主题标记的独立章节视为一个大板块。
@@ -237,14 +247,10 @@ python .claude/skills/optimize-article/scripts/extract_outline.py <文件路径>
 
 5. **调用生图脚本**
 
-   - 来源为本地文件时（传入 `IMAGE_DIR`）：
-     ```bash
-     python .claude/skills/optimize-article/scripts/infographic_generator.py "提示词" "IMAGE_DIR的绝对路径"
-     ```
-   - 来源为网页或粘贴内容时（不传目录，使用默认）：
-     ```bash
-     python .claude/skills/optimize-article/scripts/infographic_generator.py "提示词"
-     ```
+   无论来源是什么，统一传入 `IMAGE_DIR` 参数：
+   ```bash
+   python .claude/skills/optimize-article/scripts/infographic_generator.py "提示词" "IMAGE_DIR的绝对路径"
+   ```
 
    脚本执行后会输出图片保存路径（格式：`File saved to to: <路径>`），从中提取完整路径。
 
@@ -259,9 +265,72 @@ python .claude/skills/optimize-article/scripts/extract_outline.py <文件路径>
 > - 若脚本调用失败，跳过并在输出中注明"（信息图生成失败，请手动重试）"，不阻断整体流程
 > - 图片文件名含时间戳，不会覆盖已有图片
 
-### 第六步 — 保存文件（如适用）
-若来源为本地文件，询问用户：
-"是否将优化后的内容覆盖原文件，还是另存为新文件（如 `article-optimized.md`）？"
+### 第六步 — 保存文件
+
+**执行流程：**
+
+1. **创建文章专属目录**
+
+   在 `D:\BaiduSyncdisk\claude_code\article_writing\draft\` 下创建以文章标题命名的目录：
+
+   ```bash
+   mkdir -p "D:\BaiduSyncdisk\claude_code\article_writing\draft\<规范化的文章标题>"
+   mkdir -p "D:\BaiduSyncdisk\claude_code\article_writing\draft\<规范化的文章标题>\image"
+   ```
+
+   **目录名规范化规则：**
+   - 去除 Windows 不允许的字符：`\ / : * ? " < > |`
+   - 保留空格、中文、英文、数字、下划线、连字符
+   - 长度不超过 50 个字符（超出部分截断）
+
+2. **保存优化后的文章**
+
+   将优化后的文章保存到新创建的目录中，文件名为 `<规范化的文章标题>.md`：
+
+   ```
+   文件路径：D:\BaiduSyncdisk\claude_code\article_writing\draft\<规范化的文章标题>\<规范化的文章标题>.md
+   ```
+
+3. **告知用户保存结果**
+
+   > 文章已保存到：`D:\BaiduSyncdisk\claude_code\article_writing\draft\<规范化的文章标题>\<规范化的文章标题>.md`
+   >
+   > 配图已保存到：`D:\BaiduSyncdisk\claude_code\article_writing\draft\<规范化的文章标题>\image\`
+
+> **注意：**
+> - 若目标目录已存在，询问用户是否覆盖，不得静默覆盖
+> - 若原文件来源为本地文件，不删除原文件，仅在新目录中创建优化版本
+
+### 第七步 — 确认最终标题
+
+文件保存完成后，询问用户是否需要调整标题：
+
+> 文章已保存。当前使用的标题是：`<当前标题>`
+>
+> 如需调整标题，请告知新标题，我将：
+> 1. 重命名文章目录
+> 2. 重命名文章文件
+> 3. 更新文章内标题行（`# 标题`）
+>
+> 如果标题无需调整，请直接确认。
+
+**用户确认需要调整标题后，执行以下操作：**
+
+1. 规范化新标题（去除特殊字符，长度限制）
+2. 重命名文章目录：
+   ```bash
+   mv "D:\BaiduSyncdisk\claude_code\article_writing\draft\<旧标题>" "D:\BaiduSyncdisk\claude_code\article_writing\draft\<新标题>"
+   ```
+3. 重命名文章文件：
+   ```bash
+   mv "D:\BaiduSyncdisk\claude_code\article_writing\draft\<新标题>\<旧标题>.md" "D:\BaiduSyncdisk\claude_code\article_writing\draft\<新标题>\<新标题>.md"
+   ```
+4. 更新文章内容中的标题行（`# 标题`）
+5. 告知用户最终文件路径
+
+> **注意：**
+> - 文件名和目录名中若含有 Windows 不允许的字符（`\ / : * ? " < > |`），自动去除
+> - 若目标目录或文件已存在，询问用户是否覆盖，不得静默覆盖
 
 ---
 
@@ -277,3 +346,47 @@ python .claude/skills/optimize-article/scripts/extract_outline.py <文件路径>
 - **排版间距**：输出文章时，图片（`![](...)`）和标题（`##`、`###` 等）的前后各保留一个空行，保持视觉呼吸感。
 - **终端命令须事先说明**：每次执行 Bash 命令前，须向用户说明该命令的具体用途，不得静默执行。
 - **不确定即暂停汇报**：执行过程中若遇到任何不确定、没把握的情况，必须立即暂停并向用户汇报，等待指示后再继续。
+
+---
+
+## 长文档写入规范
+
+**适用场景**：当优化后的文章预计**超过 200 行**时，必须遵循以下流程。
+
+### 标准流程
+
+1. **第一步：编写框架**
+   - 先构思完整的文章框架（开头、各板块标题、结尾）
+   - 将框架写入文件，包含：
+     - 文章标题
+     - 各板块的二级标题（`##`）
+     - 各板块的核心要点（简要列出）
+   - 告知用户："框架已完成，请审核。确认无误后将逐板块填充内容。"
+   - 等待用户确认
+
+2. **第二步：逐板块填充内容**
+   - 按框架顺序，逐个板块思考并填充内容
+   - 每完成一个板块，立即使用 `Edit` 工具写入文件
+   - 不要一次性思考所有板块，避免"手没跟上脑子"
+   - 每完成 2-3 个板块，向用户汇报进度
+
+3. **第三步：全文检查**
+   - 所有板块填充完成后，**必须**通读全文
+   - 检查板块之间的衔接是否自然
+   - 检查逻辑是否合理、前后是否一致
+   - 检查是否有遗漏的信息图
+   - 发现问题立即修正
+
+### 子代理并行处理
+
+**适用场景**：当文章中有多个独立板块（板块之间关联性不强）时，可使用子代理并行处理。
+
+**操作方法**：
+- 将独立板块分配给不同的子代理
+- 每个子代理独立完成自己的板块内容
+- 所有子代理完成后，主进程汇总结果
+- 汇总后**必须**进行全文检查，确保板块之间衔接合理
+
+**注意事项**：
+- 开头和结尾不适合用子代理，因为它们需要与全文呼应
+- 如果板块之间有强逻辑关系（如递进、因果），不适合并行处理
