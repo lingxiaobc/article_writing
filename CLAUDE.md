@@ -9,9 +9,10 @@
 
 | 技能 | 触发方式 | 说明 |
 |------|----------|------|
-| `optimize-article` | 提供文章链接/路径，或说"优化文章"、"润色" | 全面优化公众号文章，含结构、语言、逻辑，并为每个大板块自动生成手绘信息图 |
+| `optimize-article` | 提供文章链接/路径，或说"优化文章"、"润色" | 全面优化公众号文章，含结构、语言、逻辑，并为每个大板块自动生成手绘信息图，最后生成朋友圈推广文案 |
 | `physics-lecture` | 提供物理草稿/大纲，或说"写物理讲义" | 针对40-50分学生，以费曼风格编写高中物理讲义 |
 | `cover-generator` | 说"请为{文章路径}生成封面"，或说"生成封面图" | 根据文章生成公众号封面图：含IP形象（Q版小猫）+ 标题艺术字，简约彩色风格，2.35:1比例 |
+| `xiaohongshu` | 说"生成小红书信息图"、"小红书配图"，或提供文章路径 | 按二级标题分割文章板块，利用子代理并行为每个板块生成手绘信息图 |
 
 ---
 
@@ -23,6 +24,7 @@
 - **写作参考**：`.claude/skills/optimize-article/references/`（检查清单、风格指南）
 - **输出模板**：`.claude/skills/optimize-article/assets/`
 - **生图脚本**：`.claude/skills/optimize-article/scripts/infographic_generator.py`（调用 Gemini API 生成手绘信息图）
+- **文案生成脚本**：`.claude/skills/optimize-article/scripts/moments_copy_generator.py`（调用 Gemini API 生成朋友圈文案）
 - **子智能体**：`.claude/agents/article-critic.md`（文章评审，在第二步被调用）
 
 ### physics-lecture
@@ -36,6 +38,10 @@
 - **生图脚本**：`.claude/skills/cover-generator/scripts/cover_generator.py`（调用 Gemini API，传入IP形象参考图生成封面）
 - **IP形象原图**：`.claude/skills/IP_character/IP_character.jpg`（所有封面的IP参考图，造型不可更改）
 - **封面风格**：简约彩色，不超过3种主色，背景纯色/渐变为主，禁止堆砌复杂元素
+
+### xiaohongshu
+- **技能逻辑**：`.claude/skills/xiaohongshu/SKILL.md`
+- **生图脚本**：`.claude/skills/xiaohongshu/scripts/infographic_generator.py`（复制自 optimize-article，调用 Gemini API 生成手绘信息图）
 
 ---
 
@@ -236,6 +242,7 @@ article_writing/
     │   │   ├── principles.md
     │   │   ├── scripts/
     │   │   │   ├── infographic_generator.py
+    │   │   │   ├── moments_copy_generator.py
     │   │   │   ├── word_count.py
     │   │   │   └── extract_outline.py
     │   │   ├── references/
@@ -290,5 +297,6 @@ pip install google-genai pillow
 |------|------|
 | 生成文章封面 | `python .claude/skills/cover-generator/scripts/cover_generator.py "标题" "IP行为描述" [输出目录]` |
 | 生成信息图 | `python .claude/skills/optimize-article/scripts/infographic_generator.py "提示词" [输出目录]` |
+| 生成朋友圈文案 | `python .claude/skills/optimize-article/scripts/moments_copy_generator.py <文章文件路径>` |
 | 统计文章字数 | `python .claude/skills/optimize-article/scripts/word_count.py <文件路径>` |
 | 提取文章大纲 | `python .claude/skills/optimize-article/scripts/extract_outline.py <文件路径>` |
